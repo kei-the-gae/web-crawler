@@ -67,7 +67,7 @@ func TestGetURLsFromHTML(t *testing.T) {
 <html>
 	<body>
 		<a>
-			<span>Boot.dev></span>
+			<span>Boot.dev</span>
 		</a>
 	</body>
 </html>
@@ -80,7 +80,7 @@ func TestGetURLsFromHTML(t *testing.T) {
 			inputBody: `
 <html body>
 	<a href="path/one">
-		<span>Boot.dev></span>
+		<span>Boot.dev</span>
 	</a>
 </html body>
 `,
@@ -111,6 +111,7 @@ func TestGetURLsFromHTML(t *testing.T) {
 			}
 
 			actual, err := getURLsFromHTML(tc.inputBody, baseURL)
+
 			if err != nil && !strings.Contains(err.Error(), tc.errorContains) {
 				t.Errorf("Test %v - '%s' FAIL: unexpected error: %v", i, tc.name, err)
 				return

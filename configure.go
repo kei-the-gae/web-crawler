@@ -7,7 +7,7 @@ import (
 )
 
 type config struct {
-	pages              map[string]int
+	pages              map[string]PageData
 	baseURL            *url.URL
 	mu                 *sync.Mutex
 	concurrencyControl chan struct{}
@@ -15,23 +15,25 @@ type config struct {
 	maxPages           int
 }
 
+// addPageVisit returns true if this is the first time we see the URL.
+// We insert a placeholder PageData to mark it as visited; it’ll be replaced later.
 func (cfg *config) addPageVisit(normalizedURL string) (isFirst bool) {
 	cfg.mu.Lock()
 	defer cfg.mu.Unlock()
 
 	if _, visited := cfg.pages[normalizedURL]; visited {
-		cfg.pages[normalizedURL]++
 		return false
 	}
 
-	cfg.pages[normalizedURL] = 1
+	cfg.pages[normalizedURL] = PageData{URL: normalizedURL}
 	return true
 }
 
-func (cfg *config) pagesLen() int {
+// setPageData safely stores the final PageData for a URL.
+func (cfg *config) setPageData(normalizedURL string, data PageData) {
 	cfg.mu.Lock()
 	defer cfg.mu.Unlock()
-	return len(cfg.pages)
+	cfg.pages[normalizedURL] = data
 }
 
 func configure(rawBaseURL string, maxConcurrency int, maxPages int) (*config, error) {
@@ -41,11 +43,17 @@ func configure(rawBaseURL string, maxConcurrency int, maxPages int) (*config, er
 	}
 
 	return &config{
-		pages:              make(map[string]int),
+		pages:              make(map[string]PageData),
 		baseURL:            baseURL,
 		mu:                 &sync.Mutex{},
 		concurrencyControl: make(chan struct{}, maxConcurrency),
 		wg:                 &sync.WaitGroup{},
 		maxPages:           maxPages,
 	}, nil
+}
+
+func (cfg *config) pagesLen() int {
+	cfg.mu.Lock()
+	defer cfg.mu.Unlock()
+	return len(cfg.pages)
 }

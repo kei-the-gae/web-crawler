@@ -10,11 +10,11 @@ func main() {
 	if len(os.Args) < 4 {
 		fmt.Println("not enough arguments provided")
 		fmt.Println("usage: crawler <baseURL> <maxConcurrency> <maxPages>")
-		return
+		os.Exit(1)
 	}
 	if len(os.Args) > 4 {
 		fmt.Println("too many arguments provided")
-		return
+		os.Exit(1)
 	}
 	rawBaseURL := os.Args[1]
 	maxConcurrencyString := os.Args[2]
@@ -43,5 +43,7 @@ func main() {
 	go cfg.crawlPage(rawBaseURL)
 	cfg.wg.Wait()
 
-	printReport(cfg.pages, rawBaseURL)
+	if err := writeCSVReport(cfg.pages, "report.csv"); err != nil {
+		fmt.Printf("Error - writeCSVReport: %v\n", err)
+	}
 }

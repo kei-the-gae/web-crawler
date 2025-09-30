@@ -22,7 +22,7 @@ func (cfg *config) crawlPage(rawCurrentURL string) {
 		return
 	}
 
-	// skip other websites
+	// stay within the same site
 	if currentURL.Hostname() != cfg.baseURL.Hostname() {
 		return
 	}
@@ -33,6 +33,7 @@ func (cfg *config) crawlPage(rawCurrentURL string) {
 		return
 	}
 
+	// Only proceed the first time we see this normalized URL
 	isFirst := cfg.addPageVisit(normalizedURL)
 	if !isFirst {
 		return
@@ -46,13 +47,12 @@ func (cfg *config) crawlPage(rawCurrentURL string) {
 		return
 	}
 
-	nextURLs, err := getURLsFromHTML(htmlBody, cfg.baseURL)
-	if err != nil {
-		fmt.Printf("Error - getURLsFromHTML: %v", err)
-		return
-	}
+	// Extract all the data we care about and store it
+	pageData := extractPageData(htmlBody, rawCurrentURL)
+	cfg.setPageData(normalizedURL, pageData)
 
-	for _, nextURL := range nextURLs {
+	// Recurse using the already-extracted outgoing links
+	for _, nextURL := range pageData.OutgoingLinks {
 		cfg.wg.Add(1)
 		go cfg.crawlPage(nextURL)
 	}

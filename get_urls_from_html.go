@@ -5,39 +5,35 @@ import (
 	"net/url"
 	"strings"
 
-	"golang.org/x/net/html"
+	"github.com/PuerkitoBio/goquery"
 )
 
 func getURLsFromHTML(htmlBody string, baseURL *url.URL) ([]string, error) {
-	htmlReader := strings.NewReader(htmlBody)
-	doc, err := html.Parse(htmlReader)
+	doc, err := goquery.NewDocumentFromReader(strings.NewReader(htmlBody))
 	if err != nil {
-		return nil, fmt.Errorf("couldn't parse HTML: %v", err)
+		return nil, fmt.Errorf("couldn't parse HTML: %w", err)
 	}
 
 	var urls []string
-	var traverseNodes func(*html.Node)
-	traverseNodes = func(node *html.Node) {
-		if node.Type == html.ElementNode && node.Data == "a" {
-			for _, anchor := range node.Attr {
-				if anchor.Key == "href" {
-					href, err := url.Parse(anchor.Val)
-					if err != nil {
-						fmt.Printf("couldn't parse href '%v': %v\n", anchor.Val, err)
-						continue
-					}
-
-					resolvedURL := baseURL.ResolveReference(href)
-					urls = append(urls, resolvedURL.String())
-				}
-			}
+	doc.Find("a[href]").Each(func(_ int, s *goquery.Selection) {
+		href, ok := s.Attr("href")
+		if !ok {
+			return
+		}
+		href = strings.TrimSpace(href)
+		if href == "" {
+			return
 		}
 
-		for child := node.FirstChild; child != nil; child = child.NextSibling {
-			traverseNodes(child)
+		u, err := url.Parse(href)
+		if err != nil {
+			fmt.Printf("couldn't parse href %q: %v\n", href, err)
+			return
 		}
-	}
-	traverseNodes(doc)
+
+		resolved := baseURL.ResolveReference(u)
+		urls = append(urls, resolved.String())
+	})
 
 	return urls, nil
 }

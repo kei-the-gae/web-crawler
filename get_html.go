@@ -8,7 +8,16 @@ import (
 )
 
 func getHTML(rawURL string) (string, error) {
-	res, err := http.Get(rawURL)
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", rawURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %v", err)
+	}
+
+	req.Header.Set("User-Agent", "BootCrawler/1.0")
+
+	res, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("got network error: %v", err)
 	}
@@ -29,6 +38,5 @@ func getHTML(rawURL string) (string, error) {
 	}
 
 	htmlBody := string(htmlBodyBytes)
-
 	return htmlBody, nil
 }
